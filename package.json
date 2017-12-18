@@ -1,0 +1,28 @@
+{
+  "name": "chris",
+  "version": "1.0.0",
+  "description": "sample web service",
+  "main": "index.js",
+  "scripts": {
+    "test": "sudo ./index.js 80"
+  },
+  "author": "Chris",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^1.0.3",
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "minimist": "^1.2.0",
+    "mocha": "^4.0.0",
+    "mongodb": "^2.2.33",
+    "yargs": "^10.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/cfu288/cs480w.git"
+  },
+  "bugs": {
+    "url": "https://gitlab.com/cfu288/cs480w/issues"
+  },
+  "homepage": "https://gitlab.com/cfu288/cs480w#README"
+}
