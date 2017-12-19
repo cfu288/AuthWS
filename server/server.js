@@ -41,54 +41,50 @@ function sendStatus(app, request, response, respStatus, id = undefined, token = 
     let retVal = {};
     switch(respStatus) {
         case "NOT_FOUND":
-            console.log("NF");
             retVal.status = "ERROR_NOT_FOUND";
             retVal.info = "user " + id + " not found";
             response.status(NOT_FOUND).json(retVal);
             break;
         case "UNAUTHORIZED":
-            console.log("UN");
             retVal.status = "ERROR_UNAUTHORIZED";
             retVal.info = "/users/" + id + "/auth requires a valid 'pw' password query paramater";
             response.status(UNAUTHORIZED).json(retVal);
             break;
-        case "OK"://needs token
-            console.log("OK");
+        case "OK": //needs token
             retVal.status = "OK";
             retVal.auth_token = token;
             retVal.expires_in = app.locals.authTimeout; 
             response.status(OK).json(retVal);
             break;
         case "SEE_OTHER":
-            console.log("SO");
             retVal.status = "EXISTS";
             retVal.info = "user " + id + " already exists";
             response.location(request.hostname + '/users/' + id );
             response.status(SEE_OTHER).json(retVal);
             break;
-        case "CREATED"://needs token
-            console.log("CR");
+        case "CREATED": //needs token
             retVal.status = "CREATED";
             retVal.auth_token = token
             retVal.expires_in = app.locals.authTimeout; 
             response.location(request.hostname + '/users/' + id );
             response.status(CREATED).json(retVal);
             break;
-        case "SERVER_ERROR"://does not need id or token
-            console.log("SE");
+        case "SERVER_ERROR": //does not need id or token
             response.sendStatus(SERVER_ERROR);
             break;
-        case "BAD_REQUEST":    
-            console.log("BR");//does not need id or token
+        case "BAD_REQUEST": //does not need id or token
             response.sendStatus(BAD_REQUEST);
             break;
         default:
             console.error("No matched case, status not sent");
-            console.log("SE");
             response.sendStatus(SERVER_ERROR);
             break;
     }
-    return 1;
+}
+
+function generateToken(){
+    //Trivial right now, need to make more secure
+    return Math.floor(Math.random()*4096*4096*4096);
 }
 
 function putUserAuth(app){
@@ -97,18 +93,13 @@ function putUserAuth(app){
         const pw = request.body.pw;
         if (typeof id === undefined || typeof pw === undefined) {
             sendStatus(app, request, response, "BAD_REQUEST");
-        }else{
-            //See if user exists in db
+        }else{ //See if user exists in db
             request.app.locals.model.users.getUser(id).
-            then((usr) =>{
-                //if does, check pw and send auth/json
-                //Check if usr pswd is correct
-                bcrypt.compare(pw, usr.hash).then((res) => {
-                    //Pw is correct
-                    if(res === true){
-                        //Generate and store updated token
+            then((usr) =>{ //User exists, check pw
+                bcrypt.compare(pw, usr.hash).then((res) => { //Check if usr pswd is correct
+                    if(res === true){ //Pw is correct, generate and store updated token
                         //console.log('CORRECT PW!');
-                        let token = Math.floor(Math.random()*4096*4096);
+                        let token = generateToken();
                         usr.token = token;
                         usr.timeout = new Date().getTime()/1000;
                         request.app.locals.model.users.updateUser(usr).then(()=>{ //User updated, send OK
@@ -223,11 +214,6 @@ function getUserFun(app) {
     };
 }
 
-/*function requestUrl(req) {
-  const port = req.app.locals.port;
-  return `${req.protocol}://${req.hostname}:${port}${req.originalUrl}`;
-}*/
-  
 module.exports = {
   serve: serve
 }
