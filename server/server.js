@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const https = require('https');
 const fs = require('fs');
-// TODO : Use espress-bearer-token module in the future to handle tokens
+// TODO : Use express-bearer-token module in the future to handle tokens
 
 const OK = 200;
 const CREATED = 201;
@@ -13,30 +13,22 @@ const UNAUTHORIZED = 401;
 const NOT_FOUND = 404;
 const SERVER_ERROR = 500;
 
-
 function serve(port, authTimeout, sslDir, model) {
     const app = express();
     app.locals.model = model;
     app.locals.authTimeout = authTimeout;
-    if (sslDir !== undefined){
-        app.locals.sslDir = sslDir;
-    }else{
-        app.locals.sslDir = '';
-    }
+    app.locals.sslDir = sslDir || '';
     app.locals.port = port;
     setupRoutes(app);
-      
-    var KEY_PATH = 'key.pem'
-    var CERT_PATH = 'cert.pem'
-    
+    let KEY_PATH = 'key.pem'
+    let CERT_PATH = 'cert.pem'
     https.createServer({
         key: fs.readFileSync(app.locals.sslDir + '/' + KEY_PATH),
-        cert: fs.readFileSync(app.locals.sslDir + '/' +CERT_PATH)
+        cert: fs.readFileSync(app.locals.sslDir + '/' + CERT_PATH)
     }, app).listen(port, function() {
         console.log(`listening on port ${port}`);
     });
 }
-
 
 function setupRoutes(app) {
     app.use(bodyParser.json());
@@ -45,69 +37,113 @@ function setupRoutes(app) {
     app.get('/users/:id', getUserFun(app));
 }
 
+function sendStatus(app, request, response, respStatus, id = undefined, token = undefined) {
+    let retVal = {};
+    switch(respStatus) {
+        case "NOT_FOUND":
+            console.log("NF");
+            retVal.status = "ERROR_NOT_FOUND";
+            retVal.info = "user " + id + " not found";
+            response.status(NOT_FOUND).json(retVal);
+            break;
+        case "UNAUTHORIZED":
+            console.log("UN");
+            retVal.status = "ERROR_UNAUTHORIZED";
+            retVal.info = "/users/" + id + "/auth requires a valid 'pw' password query paramater";
+            response.status(UNAUTHORIZED).json(retVal);
+            break;
+        case "OK"://needs token
+            console.log("OK");
+            retVal.status = "OK";
+            retVal.auth_token = token;
+            retVal.expires_in = app.locals.authTimeout; 
+            response.status(OK).json(retVal);
+            break;
+        case "SEE_OTHER":
+            console.log("SO");
+            retVal.status = "EXISTS";
+            retVal.info = "user " + id + " already exists";
+            response.location(request.hostname + '/users/' + id );
+            response.status(SEE_OTHER).json(retVal);
+            break;
+        case "CREATED"://needs token
+            console.log("CR");
+            retVal.status = "CREATED";
+            retVal.auth_token = token
+            retVal.expires_in = app.locals.authTimeout; 
+            response.location(request.hostname + '/users/' + id );
+            response.status(CREATED).json(retVal);
+            break;
+        case "SERVER_ERROR"://does not need id or token
+            console.log("SE");
+            response.sendStatus(SERVER_ERROR);
+            break;
+        case "BAD_REQUEST":    
+            console.log("BR");//does not need id or token
+            response.sendStatus(BAD_REQUEST);
+            break;
+        default:
+            console.error("No matched case, status not sent");
+            console.log("SE");
+            response.sendStatus(SERVER_ERROR);
+            break;
+    }
+    return 1;
+}
+
 function putUserAuth(app){
     return function(request, response) {
         const id = request.params.id;
         const pw = request.body.pw;
-        console.log("id: "+id);
-        console.log("pw: "+pw);
         if (typeof id === undefined || typeof pw === undefined) {
-            response.sendStatus(BAD_REQUEST);
+            sendStatus(app, request, response, "BAD_REQUEST");
         }else{
             //See if user exists in db
             request.app.locals.model.users.getUser(id).
             then((usr) =>{
                 //if does, check pw and send auth/json
-                //check if usr psd is correct
+                //Check if usr pswd is correct
                 bcrypt.compare(pw, usr.hash).then((res) => {
-                    //pw is correct
+                    //Pw is correct
                     if(res === true){
-                        //generate and store updated token
-                        console.log('CORRECT PW!');
-                        var token = Math.floor(Math.random()*4096*4096);
+                        //Generate and store updated token
+                        //console.log('CORRECT PW!');
+                        let token = Math.floor(Math.random()*4096*4096);
                         usr.token = token;
                         usr.timeout = new Date().getTime()/1000;
-                        request.app.locals.model.users.updateUser(usr).then(()=>{
-                          // console.log("updated user"); 
-                        }).catch(()=>{
-                            //failed to update user 
-                            var retVal = {};
-                            retVal.status = "ERROR_NOT_FOUND";
-                            retVal.info = "user " + id + " not found";
-                            response.status(NOT_FOUND).json(retVal);
+                        request.app.locals.model.users.updateUser(usr).then(()=>{ //User updated, send OK
+                            sendStatus(app, request, response, "OK", id, token);
+                        }).catch(()=>{ //Failed to find and update user 
+                            sendStatus(app, request, response, "NOT_FOUND", id);
                         });
-                        //response json
-                        let retVal ={};
-                        retVal.status = "OK";
-                        retVal.auth_token = token;
-                        retVal.expires_in = app.locals.authTimeout; 
-                        response.status(200).json(retVal);
-                    }else{
-                        //pw is incorrect
+                    }else{ //Pw is incorrect
                         console.log('INCORRECT PW!');
-                        let retVal ={};
-                        retVal.status = "ERROR_UNAUTHORIZED";
-                        retVal.info = "/users/" + id + "/auth requires a valid 'pw' password query paramater";
-                        response.status(UNAUTHORIZED).json(retVal);
+                        sendStatus(app, request, response, "UNAUTHORIZED", id);
                     }
-                }).catch((err) =>{
-                    //Issue with pw
-                    let retVal ={};
-                    retVal.status = "ERROR_UNAUTHORIZED";
-                    retVal.info = "/users/" + id + "/auth requires a valid 'pw' password query paramater";
-                    response.status(UNAUTHORIZED).json(retVal);
+                }).catch((err) =>{ //Issue with pw
+                    sendStatus(app, request, response, "UNAUTHORIZED", id);
                     console.error(err);
                 });
-            }).catch((err)=>{
-                //if does not, send err  
-                var retVal = {};
-                retVal.status = "ERROR_NOT_FOUND";
-                retVal.info = "user " + id + " not found";
-                response.status(NOT_FOUND).json(retVal);
+            }).catch((err)=>{ //If does not find user, send err  
+                sendStatus(app, request, response, "NOT_FOUND", id);
                 console.error(err);
             });
         }
     }
+}
+
+function createUserObject(id, hash, reqBody, token = undefined) {
+    let bod = {};
+    bod._id = id;
+    bod.hash = hash;
+    if (token !== undefined){
+        bod.token = token;
+    }
+    bod.timeout = new Date().getTime()/1000;
+    if (reqBody != undefined ) {
+        bod.body = reqBody;
+    }
+    return bod;
 }
 
 function createUser(app){
@@ -115,51 +151,40 @@ function createUser(app){
         const id = request.params.id;
         const pw = request.query.pw;
         if (typeof id === undefined || typeof pw === undefined) {
-          response.sendStatus(BAD_REQUEST);
+            console.log("Bad Request1");
+            sendStatus(app, request, response, "BAD_REQUEST");
         }
         else {
             request.app.locals.model.users.getUser(id).
-            then(() => {
-                //USER ALREADY EXISTS
-                var retVal = {};
-                retVal.status = "EXISTS";
-                retVal.info = "user " + id + " already exists";
-                response.location(request.hostname + '/users/' + id );
-                response.status(SEE_OTHER).json(retVal);
-            }).catch(() => {
-                //NEED TO CREATE USER
-                var bod = {};
-                var token = Math.floor(Math.random()*4096*4096);
-                //async password hash
-                bcrypt.hash(pw,10).then((hash) => {
-                    //create usr obj
-                    bod._id = id;
-                    bod.hash = hash;
-                    bod.token = token;
-                    bod.timeout = new Date().getTime()/1000;
-                    if (request.body != undefined ) {
-                        bod.body = request.body;
-                    }
-                    //After password hash and user create, store bod
+            then(() => { //USER ALREADY EXISTS
+                console.log("IF SEND THIS"); // this
+                console.log("sent status1"); // this
+                sendStatus(app, request, response, "SEE_OTHER", id);
+            }).catch(() => { //NEED TO CREATE USER
+                console.log("SHOULDNT SEND THIS"); // this
+                //async hash password
+                console.log(pw);
+                bcrypt.hash(pw,10)
+                .then((hash) => {
+                    let token = Math.floor(Math.random()*4096*4096);
+                    let bod = createUserObject(id, hash, request.body, token);
+                    //Store usr obj in db
                     request.app.locals.model.users.newUser(bod).
                     then((id) => {
                         //send response to client
-                        let retVal ={};
-                        retVal.status = "CREATED";
-                        retVal.auth_token = token
-                        retVal.expires_in = app.locals.authTimeout; 
-                        response.location(request.hostname + '/users/' + id );
-                        response.status(CREATED).json(retVal);
+                        console.log("created1");
+                        sendStatus(app, request, response, "CREATED", id, token);
                     }).catch((err) => {
                         //Failed to create new user in db
-                        console.err(err);
-                        response.sendStatus(SERVER_ERROR);
+                        console.log("ServerErr1");
+                        sendStatus(app, request, response, "SERVER_ERROR");
+                        console.error(err);
                     });
-
                 }).catch((err) => {
                     //failed to hash password
-                    console.err(err);
-                    response.sendStatus(SERVER_ERROR);
+                    console.log("ServerErr2"); // this
+                    sendStatus(app, request, response, "SERVER_ERROR");
+                    console.error(err);
                 });
             });
         }
@@ -172,43 +197,36 @@ function getUserFun(app) {
         let auth = request.get("authorization")
         auth = auth.split(" ")[1];
         if (typeof id === 'undefined') {
-          response.sendStatus(BAD_REQUEST);
+          sendStatus(app, request, response, "BAD_REQUEST")
         }
         else {
             request.app.locals.model.users.getUser(id).
             then((user) => {
                 //found user
-                var currTime = new Date().getTime()/1000;
-                var timedOut = Math.abs(user.timeout - currTime); 
+                let currTime = new Date().getTime()/1000;
+                let timedOut = Math.abs(user.timeout - currTime); 
                 if(user.token !== undefined && user.token == auth && timedOut < app.locals.authTimeout){
                     //console.log("same!");
                     response.send(user.body);
                 }
                 else{
                     //console.log("different!");
-                    let retVal = {};
-                    retVal.status = "ERROR_UNAUTHORIZED";
-                    retVal.info ="/users/" + id + " requires a bearer authorization header";
-                    response.status(UNAUTHORIZED).json(retVal);
-                        
+                    sendStatus(app, request, response, "UNAUTHORIZED", id)
                 }
             }).
             catch((err) => {
                 //user not found
+                sendStatus(app, request, response, "NOT_FOUND", id)
                 console.error(err);
-                let retVal = {};
-                retVal.status = "ERROR_NOT_FOUND";
-                retVal.info ="user " + id + " not found";
-                response.status(NOT_FOUND).json(retVal);
             });
         }
     };
 }
 
-function requestUrl(req) {
+/*function requestUrl(req) {
   const port = req.app.locals.port;
   return `${req.protocol}://${req.hostname}:${port}${req.originalUrl}`;
-}
+}*/
   
 module.exports = {
   serve: serve
