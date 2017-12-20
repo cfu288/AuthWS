@@ -35,7 +35,7 @@ This authentication service responds to the following relative URLs:
       "authToken":` "<authToken>", 
     }
     ```
-    * If pq is incorrect or not present: 
+    * If pw is incorrect or not present: 
     ```
     { "status": "ERROR_UNAUTHORIZED",
       "info": "/users/<ID>/auth requires a valid 'pw' password query parameter"
@@ -57,7 +57,8 @@ This authentication service responds to the following relative URLs:
       "info": "user <ID> not found"
     }
     ```
-    * If there is an issue with the auth header, a 401 will be sent with the body:
+    * If there is an issue with the auth header or it is missing, a 400 will be sent.
+    * If the token is wrong, a 401 will be sent with the body:
     ```
     { "status": "ERROR_UNAUTHORIZED",
       "info": "/users/<ID> requires a bearer authorization header"

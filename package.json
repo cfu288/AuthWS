@@ -4,11 +4,14 @@
   "description": "sample web service",
   "main": "index.js",
   "scripts": {
-    "test": "sudo ./index.js 80"
+    "test": "mocha",
+    "run": "sudo ./index.js 80",
+    "testserver": "sudo ./index.js -m mongodb://localhost:27017/test_db 80 &"
   },
   "author": "Chris",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.17.1",
     "bcrypt": "^1.0.3",
     "body-parser": "^1.18.2",
     "express": "^4.16.2",

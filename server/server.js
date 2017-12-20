@@ -13,7 +13,7 @@ const UNAUTHORIZED = 401;
 const NOT_FOUND = 404;
 const SERVER_ERROR = 500;
 
-//________________________________RUN SERVER________________________________
+//_____________________________RUN SERVER_____________________________
 
 function serve(port, authTimeout, sslDir, model) {
     const app = express();
@@ -32,7 +32,7 @@ function serve(port, authTimeout, sslDir, model) {
     });
 }
 
-//________________________________METHODS________________________________
+//_____________________________METHODS_____________________________
 
 function putUserAuth(app){
     return function(request, response) {
@@ -105,11 +105,11 @@ function getUserFun(app) {
     return function(request, response) {
         const id = request.params.id;
         let auth = request.get("authorization")
-        auth = auth.split(" ")[1];
-        if (typeof id === 'undefined') {
+        if (typeof id === 'undefined' || typeof auth === 'undefined') {
           sendStatus(app, request, response, "BAD_REQUEST")
         }
         else {
+            auth = auth.split(" ")[1];
             request.app.locals.model.users.getUser(id).
             then((user) => { //Found user
                 let currTime = new Date().getTime()/1000;
@@ -129,7 +129,7 @@ function getUserFun(app) {
     };
 }
 
-//________________________________HELPER FUNCTIONS________________________________
+//_____________________________HELPER FUNCTIONS_____________________________
 
 function setupRoutes(app) {
     app.use(bodyParser.json());
@@ -202,7 +202,7 @@ function sendStatus(app, request, response, respStatus, id = undefined, token = 
     }
 }
 
-//________________________________EXPORT________________________________
+//_____________________________EXPORT_____________________________
 
 module.exports = {
   serve: serve

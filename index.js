@@ -8,23 +8,10 @@ const model = require('./model/model');
 const server = require('./server/server');
 const options = require('./options');
   
-
-const DB_URL = 'mongodb://localhost:27017/users';
-
-function getPort(argv) {
-  let port = null;
-  if (argv.length !== 3 || !(port = Number(argv[2]))) {
-    console.error(`usage: ${argv[1]} PORT`);
-    process.exit(1);
-  }
-  return port;
-}
-
-//const port = getPort(process.argv);
 const PORT = options.options.port;
 const AUTH_TIMEOUT = options.options.authTimeout;
 const SSL_DIR = options.options.sslDir;
-
+const DB_URL = options.options.dbUrl;
 
 mongo.connect(DB_URL).
   then(function(db) {

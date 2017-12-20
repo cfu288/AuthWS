@@ -10,11 +10,13 @@ const minimist = require('minimist')
 
 const OPTS = [
   ['t', 'auth-time' ],
-  ['d', 'ssl-dir' ]
+  ['d', 'ssl-dir' ],
+  ['m', 'mongo-url' ]
 ];
 
 const DEFAULT_AUTH_TIMEOUT = 300;
 const DEFAULT_SSL_DIR = '.';
+const DEFAULT_DB_URL = 'mongodb://localhost:27017/users';
 
 function usage(prg) {
   const opts = OPTS.map(function(opt) {
@@ -39,7 +41,8 @@ function getOptions(argv) {
   return {
     port: opts._[0],
     authTimeout: opts.t || opts['auth-time'] || DEFAULT_AUTH_TIMEOUT,
-    sslDir: opts.d || opts['ssl-dir'] || DEFAULT_SSL_DIR
+    sslDir: opts.d || opts['ssl-dir'] || DEFAULT_SSL_DIR,
+    dbUrl: opts.m || opts['mongo-url'] || DEFAULT_DB_URL
   };
 }
 
@@ -50,6 +53,3 @@ module.exports = {
 /*if (!module.parent) {
   console.log(getOptions(process.argv));
 }*/
-
-
-
