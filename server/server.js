@@ -118,7 +118,7 @@ function getUserFun(app) {
                     response.send(user.body);
                 }
                 else{
-                    sendStatus(app, request, response, "UNAUTHORIZED", id)
+                    sendStatus(app, request, response, "UNAUTHORIZEDTOK", id)
                 }
             }).
             catch((err) => { //User not found
@@ -168,6 +168,11 @@ function sendStatus(app, request, response, respStatus, id = undefined, token = 
         case "UNAUTHORIZED":
             retVal.status = "ERROR_UNAUTHORIZED";
             retVal.info = "/users/" + id + "/auth requires a valid 'pw' password query paramater";
+            response.status(UNAUTHORIZED).json(retVal);
+            break;
+        case "UNAUTHORIZEDTOK":
+            retVal.status = "ERROR_UNAUTHORIZED";
+            retVal.info = "/users/" + id + "/auth requires a bearer authorization header";
             response.status(UNAUTHORIZED).json(retVal);
             break;
         case "OK": //needs token
