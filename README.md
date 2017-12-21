@@ -28,20 +28,23 @@ This authentication service responds to the following relative URLs:
     ```
  
  * *PUT /users/ID/auth*
-    * This request must contain a json body in the form of ``` {"pw": PASSWORD}```
-    * If everything is correct, the following will be returned:
+    * This request must contain a json body in the form of 
+    ```
+    {"pw": PASSWORD}
+    ```
+    * If everything is correct, a 200 status will be returned with the body:
     ```
     { "status": "OK",
       "authToken":` "<authToken>", 
     }
     ```
-    * If pw is incorrect or not present: 
+    * If pw is incorrect or not present, return a 403 and the body: 
     ```
     { "status": "ERROR_UNAUTHORIZED",
       "info": "/users/<ID>/auth requires a valid 'pw' password query parameter"
     }
     ```
-    * If ID is not found:
+    * If ID is not found, return 404 and the body:
     ```
     { "status": "ERROR_NOT_FOUND",
       "info": "user <ID> not found"
@@ -57,7 +60,7 @@ This authentication service responds to the following relative URLs:
       "info": "user <ID> not found"
     }
     ```
-    * If there is an issue with the auth header or it is missing, a 400 will be sent.
+    * If there is an issue with the auth header or it is missing, a 400 status will be sent.
     * If the token is wrong, a 401 will be sent with the body:
     ```
     { "status": "ERROR_UNAUTHORIZED",
