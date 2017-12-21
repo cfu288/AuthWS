@@ -4,11 +4,10 @@ Using Node, Express, MongoDB
 
 This authentication service can be started the following way:
     
-    > ./index.js [ -t|--auth-time AUTH_TIME ] [ -d|--ssl-dir SSL_DIR ] PORT
+    ```./index.js [ -t|--auth-time AUTH_TIME ] [ -d|--ssl-dir SSL_DIR ] PORT```
     
-    * -t | --auth-time : The time in seconds before an authentication token times out. If not specified, the value should default to 300 seconds.
-    * -d | --ssl-dir : The path to the directory containing SSL credential files key.pem and cert.pem. If not specified, the value should default to the directory from which the server was started.
-    * Currently it uses the mongo db at mongodb://localhost:27017/users
+  * -t | --auth-time : The time in seconds before an authentication token times out. If not specified, the value should default to 300 seconds.
+  * -d | --ssl-dir : The path to the directory containing SSL credential files key.pem and cert.pem. If not specified, the value should default to the directory from which the server was started.
 
 This authentication service responds to the following relative URLs:
 
