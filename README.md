@@ -1,6 +1,6 @@
 ## Web Authentication REST API
 
-Using Node, Express, MongoDB
+Using Node, Express, MongoDB, Mocha 
 
 This authentication service can be started the following way:
 ```
@@ -9,6 +9,8 @@ This authentication service can be started the following way:
   * -t | --auth-time : The time in seconds before an authentication token times out. If not specified, the value should default to 300 seconds.
   * -d | --ssl-dir : The path to the directory containing SSL credential files key.pem and cert.pem. If not specified, the value should default to the directory from which the server was started.
   * -m | --mongo-url : The URL to MongoDB. If not specified, defaults to localhost.
+
+To run mocha tests, run "npm test" (Tests are not comprehensive, just ensure the functionality described below works).
 
 This authentication service responds to the following relative URLs:
 
